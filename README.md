@@ -1,48 +1,60 @@
-# Uniswap V4 Subgraph
+# Uniswap V4 Celo Subgraph
 
-### Running Unit Tests
+Indexes Uniswap V4 protocol activity on Celo (Chain ID: 42220) using [The Graph](https://thegraph.com/).
 
-1. Install [Docker](https://docs.docker.com/get-docker/) if you don't have it already
-2. Install postgres: `brew install postgresql`
-3. `yarn run build:docker`
-4. `yarn run test`
+## Contracts
 
-### Adding New Chains
+| Contract | Address |
+|---|---|
+| PoolManager | `0x288dc841A52FCA2707c6947B3A777c5E56cd87BC` |
+| PositionManager | `0xf7965f3981e4D5BC383BfBCb61501763e9068CA9` |
 
-1. Create a new subgraph config in `src/utils/chains.ts`. This will require adding a new `<NETWORK_NAME>_NETWORK_NAME` const for the corresponding network.
-2. Add a new entry in `networks.json` for the new chain. The network name should be derived from the CLI Name in The Graph's [supported networks documenation](https://thegraph.com/docs/en/developing/supported-networks/). The factory address can be derived from Uniswap's deployments documentation (not yet available).
-3. To deploy to Alchemy, run the following command:
+## Indexed Events
+
+**PoolManager:** `Initialize`, `Swap`, `ModifyLiquidity`
+**PositionManager:** `Transfer`, `Subscription`, `Unsubscription`
+
+## Entities
+
+Pools, Tokens, Swaps, Positions, Ticks, Transactions, and time-series aggregations (hourly/daily) for pools, tokens, and protocol-wide stats.
+
+## Query Endpoint
 
 ```
-yarn run deploy:alchemy --
-  <SUBGRAPH_NAME>
-  --version-label <VERSION_LABEL>
-  --deploy-key <DEPLOYMENT_KEY>
-  --network <NETWORK_NAME>
+https://api.studio.thegraph.com/query/111767/uniswap-v-4-celo/version/latest
 ```
 
-## Generating subgraph.yaml
+### Example Query
 
-The `subgraph.yaml` file can be automatically generated from the `networks.json` configuration for a specific network. This ensures that all contract addresses and start blocks are correctly synchronized.
+```graphql
+{
+  pools(first: 5, orderBy: totalValueLockedUSD, orderDirection: desc) {
+    id
+    token0 { symbol }
+    token1 { symbol }
+    feeTier
+    totalValueLockedUSD
+    volumeUSD
+  }
+}
+```
 
-To generate the subgraph.yaml:
+## Development
 
-1. Make sure your `networks.json` is up to date with the correct contract addresses and start blocks
-2. Run:
-   ```bash
-   yarn generate-subgraph <network>
-   ```
-   For example:
-   ```bash
-   yarn generate-subgraph mainnet
-   # or
-   yarn generate-subgraph arbitrum-one
-   ```
+```bash
+yarn install
+yarn generate-subgraph celo
+graph codegen --output-dir src/types/
+graph build
+```
 
-This will create a new `subgraph.yaml` file based on the network-specific configuration. The script will:
+## Deploy
 
-- Use the contract templates defined for each contract type (PoolManager, PositionManager, etc.)
-- Generate data sources for each contract in the specified network
-- Preserve all the necessary event handlers and ABI configurations
+```bash
+graph auth <deploy-key>
+graph deploy --studio uniswap-v-4-celo
+```
 
-Available networks can be found in `networks.json`.
+## Based On
+
+[Uniswap/v4-subgraph](https://github.com/Uniswap/v4-subgraph) (GPL-3.0)
